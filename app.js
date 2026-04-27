@@ -160,15 +160,6 @@ function loadData() {
     }
     
 }
-       async function syncAgentsFromCloud() {
-    const success = await loadSharedAgents();
-    if (!success) {
-        console.log("Impossible de synchroniser les agents depuis le cloud");
-        // Optionnel : afficher un message à l'utilisateur
-        if (typeof showSnackbar === 'function') {
-            showSnackbar("⚠️ Synchronisation cloud échouée, données locales affichées");
-        }
-    } 
 // Rafraîchir les données toutes les 5 minutes
 setInterval(async () => {
     if (currentUser) {
