@@ -54,34 +54,26 @@ async function saveSharedAgents() {
         // Suppression : plus de "/tabs"
         await fetch(`${SHEET_BEST_BASE_URL}/Agents/all`, { method: 'DELETE' });
         
-        const dataToSend = agents.map(a => ({
-            Code: a.code,
-            Nom: a.nom,
-            Prénom: a.prenom,
-            Groupe: a.groupe,
-            Tel: a.tel || '',
-            Matricule: a.matricule || '',
-            Cin: a.cin || '',
-            Poste: a.poste || '',
-            DateEntree: a.date_entree || '',
-            Statut: a.statut === 'actif' ? 'Actif' : 'Inactif',
-            Adresse: a.adresse || '',
-            Email: a.email || '',
-            Date_Naissance: a.date_naissance || '',
-            DateSortie: a.date_sortie || ''
-        }));
+     async function saveSharedAgents() {
+    if (!SHEET_BEST_BASE_URL) return;
+    try {
+        // 1. Supprimer tout l'onglet
+        const delRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents/all`, { method: 'DELETE' });
+        if (!delRes.ok) throw new Error(`DELETE échoué: ${delRes.status}`);
         
-        // Écriture : plus de "/tabs"
-        await fetch(`${SHEET_BEST_BASE_URL}/Agents`, {
+        // 2. Réécrire les nouvelles données
+        const dataToSend = agents.map(a => ({ ... }));
+        const postRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dataToSend)
         });
-        console.log("✅ Agents sauvegardés dans sheet.best");
-        showSnackbar("✅ Agents sauvegardés");
-    } catch (erreur) {
-        console.error("❌ Erreur sauvegarde", erreur);
-        showSnackbar("Erreur lors de la sauvegarde");
+        if (!postRes.ok) throw new Error(`POST échoué: ${postRes.status}`);
+        console.log("✅ Agents sauvegardés");
+        showSnackbar("✅ Agents synchronisés");
+    } catch (err) {
+        console.error("❌ Erreur sauvegarde", err);
+        showSnackbar("Erreur de synchronisation");
     }
 }
 
@@ -139,7 +131,6 @@ function saveData() {
 
 // Ancienne fonction loadData - À REMPLACER
 function loadData() {
-    // 1. D'abord, charger les données locales (sauf les agents)
     const savedUsers = localStorage.getItem('sga_users');
     if (savedUsers) users = JSON.parse(savedUsers);
     
@@ -153,20 +144,35 @@ function loadData() {
     notifications = JSON.parse(localStorage.getItem('sga_sys_notifications') || '[]');
     soldeConges = JSON.parse(localStorage.getItem('sga_solde_conges') || '[]');
     soldesConges = JSON.parse(localStorage.getItem('sga_soldes_conges') || '[]');
+    
     if (holidays.length === 0) initializeHolidays();
     
+    // Charger les agents depuis le localStorage uniquement (pas de cloud immédiat)
+    const savedAgents = localStorage.getItem('sga_agents');
+    if (savedAgents && savedAgents.length > 0) {
+        agents = JSON.parse(savedAgents);
+    } else {
+        if (agents.length === 0) initializeDemoAgents();
+    }
     
-    // 2. Ensuite, charger les agents depuis le cloud (ou local si cloud indisponible)
-    loadSharedAgents().then(success => {
-        if (!success) {
-            const savedAgents = localStorage.getItem('sga_agents');
-            if (savedAgents) agents = JSON.parse(savedAgents);
-            if (agents.length === 0) initializeDemoAgents();
-        }
-        displayMainMenu();
-    });
+    // Afficher le menu principal sans attendre le cloud
+    displayMainMenu();
+    
+    // Lancer la synchronisation en arrière-plan (une fois après affichage)
+    if (currentUser) {
+        syncAgentsFromCloud();
+    }
+    
 }
-
+       async function syncAgentsFromCloud() {
+    const success = await loadSharedAgents();
+    if (!success) {
+        console.log("Impossible de synchroniser les agents depuis le cloud");
+        // Optionnel : afficher un message à l'utilisateur
+        if (typeof showSnackbar === 'function') {
+            showSnackbar("⚠️ Synchronisation cloud échouée, données locales affichées");
+        }
+    } 
 // Rafraîchir les données toutes les 5 minutes
 setInterval(async () => {
     if (currentUser) {
@@ -175,6 +181,8 @@ setInterval(async () => {
         console.log("🔄 Synchronisation automatique");
     }
 }, 5 * 60 * 1000); // 5 minutes
+        
+}
 function initializeHolidays() {
     holidays = [
         { date: "01-01", description: "Nouvel An", isRecurring: true, type: "fixe" },
