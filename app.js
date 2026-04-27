@@ -161,15 +161,12 @@ function loadData() {
     
 }
 // Rafraîchir les données toutes les 5 minutes
-setInterval(async () => {
+setInterval(() => {
     if (currentUser) {
-        await loadSharedAgents();
-        await loadSharedLeaves();
-        console.log("🔄 Synchronisation automatique");
+        syncAgentsFromCloud();
     }
-}, 5 * 60 * 1000); // 5 minutes
-        
-}
+}, 5 * 60 * 1000); // toutes les 5 minutes
+    
 function initializeHolidays() {
     holidays = [
         { date: "01-01", description: "Nouvel An", isRecurring: true, type: "fixe" },
