@@ -132,33 +132,17 @@ function loadData() {
     
     planningData = JSON.parse(localStorage.getItem('sga_planning') || '{}');
     holidays = JSON.parse(localStorage.getItem('sga_holidays') || '[]');
-    panicCodes = JSON.parse(localStorage.getItem('sga_panic_codes') || '[]');
-    radios = JSON.parse(localStorage.getItem('sga_radios') || '[]');
-    uniforms = JSON.parse(localStorage.getItem('sga_uniforms') || '[]');
-    warnings = JSON.parse(localStorage.getItem('sga_warnings') || '[]');
-    replacementNotifications = JSON.parse(localStorage.getItem('sga_notifications') || '[]');
-    notifications = JSON.parse(localStorage.getItem('sga_sys_notifications') || '[]');
-    soldeConges = JSON.parse(localStorage.getItem('sga_solde_conges') || '[]');
-    soldesConges = JSON.parse(localStorage.getItem('sga_soldes_conges') || '[]');
+    // ... autres chargements locaux ...
     
-    if (holidays.length === 0) initializeHolidays();
-    
-    // Charger les agents depuis le localStorage uniquement (pas de cloud immédiat)
-    const savedAgents = localStorage.getItem('sga_agents');
-    if (savedAgents && savedAgents.length > 0) {
-        agents = JSON.parse(savedAgents);
-    } else {
-        if (agents.length === 0) initializeDemoAgents();
-    }
-    
-    // Afficher le menu principal sans attendre le cloud
-    displayMainMenu();
-    
-    // Lancer la synchronisation en arrière-plan (une fois après affichage)
-    if (currentUser) {
-        syncAgentsFromCloud();
-    }
-    
+    // ⚠️ Ligne à supprimer / commenter
+    loadSharedAgents().then(success => {
+        if (!success) {
+            const savedAgents = localStorage.getItem('sga_agents');
+            if (savedAgents) agents = JSON.parse(savedAgents);
+            if (agents.length === 0) initializeDemoAgents();
+        }
+        displayMainMenu();
+    });
 }
 // Rafraîchir les données toutes les 5 minutes
 setInterval(() => {
