@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>SGA v8.0 - Système de Gestion des Agents</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#34495e">
+    <meta name="description" content="Système de Gestion des Agents CleanCo">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .header-notification {
+            position: relative;
+            cursor: pointer;
+            margin-left: auto;
+        }
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div class="app-header">
+            <div class="header-logo">
+                <img src="icon.png" alt="Logo" class="logo-img" onerror="this.style.display='none'">
+            </div>
+            <div class="header-title">
+                <h1>🏢 SGA v8.0 - CleanCo</h1>
+                <div id="sub-title">Système de Gestion des Agents</div>
+            </div>
+            <div class="header-notification" id="headerNotification">
+                <span style="font-size: 1.5rem;">🔔</span>
+                <span id="notificationBadge" class="notification-badge">0</span>
+            </div>
+        </div>
+        <div id="main-content"></div>
+        <div class="app-footer">
+            &copy; 2026 - CleanCo | Gestion des Agents v8.0
+        </div>
+    </div>
+    <div id="snackbar"></div>
+    
+    <script src="app.js"></script>
+    <script>
+        // Script de test et d'attachement des événements
+        console.log("Script principal chargé - attente de app.js");
+        
+        // Attendre que app.js soit chargé
+        setTimeout(function() {
+            console.log("Vérification après 2 secondes:");
+            console.log("- typeof showNotificationsPanel:", typeof showNotificationsPanel);
+            console.log("- typeof notifications:", typeof notifications);
+            console.log("- currentUser:", currentUser ? currentUser.username : "null");
+            
+            // Attacher l'événement à l'icône notification
+            var notifIcon = document.getElementById('headerNotification');
+            if (notifIcon && typeof showNotificationsPanel === 'function') {
+                notifIcon.onclick = function() {
+                    showNotificationsPanel();
+                };
+                console.log("✅ Événement notification attaché");
+            } else {
+                console.log("❌ Impossible d'attacher l'événement - fonction non trouvée");
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
