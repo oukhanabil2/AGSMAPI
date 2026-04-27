@@ -2,7 +2,11 @@
 // ==================== PARTIE 1 : CONSTANTES ====================
 console.log("🚀 SGA v8.0 - Application chargée");
 // API 
-const SHEET_BEST_BASE_URL = "https://api.sheetbest.com/sheets/3c7ae8f7-6b84-4020-8d6a-ff8bc1de1c1b";
+// Avant (l'ancienne constante à supprimer ou commenter)
+// const SHEET_BEST_BASE_URL = "https://api.sheetbest.com/sheets/3c7ae8f7-6b84-4020-8d6a-ff8bc1de1c1b";
+
+// Après (utilisez l'URL de votre projet Vercel)
+const SHEET_BEST_BASE_URL = "https://agsmapi.vercel.app/api";
 
 // Pour les congés, nous utiliserons le même base + /tabs/Conges plus tard
 const SHEET_LEAVES_API_URL = SHEET_BEST_BASE_URL; // temporaire, mais on utilisera les tabs
