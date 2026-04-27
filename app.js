@@ -14,10 +14,11 @@ const SHEET_LEAVES_API_URL = SHEET_BEST_BASE_URL; // temporaire, mais on utilise
 async function loadSharedAgents() {
     if (!SHEET_BEST_BASE_URL) return false;
     try {
-        const response = await fetch(`${SHEET_BEST_BASE_URL}/tabs/Agents`);
+        // Plus de "/tabs" : l'URL de base est déjà "https://agsmapi.vercel.app/api"
+        const response = await fetch(`${SHEET_BEST_BASE_URL}/Agents`);
         if (!response.ok) throw new Error("Erreur réseau");
         const cloudAgents = await response.json();
-        
+
         if (cloudAgents && cloudAgents.length > 0) {
             agents = cloudAgents.map(row => ({
                 code: row.Code || '',
@@ -42,16 +43,16 @@ async function loadSharedAgents() {
         }
     } catch (erreur) {
         console.error("❌ Erreur chargement", erreur);
+        showSnackbar("Erreur de chargement des agents");
     }
     return false;
 }
-
 // Sauvegarder les agents vers le cloud
 async function saveSharedAgents() {
     if (!SHEET_BEST_BASE_URL) return;
     try {
-        // Supprimer toutes les anciennes lignes
-        await fetch(`${SHEET_BEST_BASE_URL}/tabs/Agents/all`, { method: 'DELETE' });
+        // Suppression : plus de "/tabs"
+        await fetch(`${SHEET_BEST_BASE_URL}/Agents/all`, { method: 'DELETE' });
         
         const dataToSend = agents.map(a => ({
             Code: a.code,
@@ -70,14 +71,17 @@ async function saveSharedAgents() {
             DateSortie: a.date_sortie || ''
         }));
         
-        await fetch(`${SHEET_BEST_BASE_URL}/tabs/Agents`, {
+        // Écriture : plus de "/tabs"
+        await fetch(`${SHEET_BEST_BASE_URL}/Agents`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dataToSend)
         });
         console.log("✅ Agents sauvegardés dans sheet.best");
+        showSnackbar("✅ Agents sauvegardés");
     } catch (erreur) {
         console.error("❌ Erreur sauvegarde", erreur);
+        showSnackbar("Erreur lors de la sauvegarde");
     }
 }
 
