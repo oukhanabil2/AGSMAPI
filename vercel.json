@@ -1,5 +1,5 @@
 {
-  "methods" :[ "GET", "POST" , "DELETE", " OPTIONS"]
+
   "rewrites": [
     {
       "source": "/api/(.*)",
