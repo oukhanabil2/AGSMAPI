@@ -48,12 +48,8 @@ async function loadSharedAgents() {
     return false;
 }
 // Sauvegarder les agents vers le cloud
-async function saveSharedAgents() {
-    if (!SHEET_BEST_BASE_URL) return;
-    try {
-        // Suppression : plus de "/tabs"
-        await fetch(`${SHEET_BEST_BASE_URL}/Agents/all`, { method: 'DELETE' });
-        
+
+      
      async function saveSharedAgents() {
     if (!SHEET_BEST_BASE_URL) return;
     try {
