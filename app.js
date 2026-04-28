@@ -48,19 +48,9 @@ async function loadSharedAgents() {
     return false;
 }
 // Sauvegarder les agents vers le cloud
-
 async function saveSharedAgents() {
-    alert("1. Entrée dans saveSharedAgents");
-    if (!SHEET_BEST_BASE_URL) {
-        alert("ERREUR: SHEET_BEST_BASE_URL non défini");
-        return;
-    }
+    if (!SHEET_BEST_BASE_URL) return;
     try {
-        alert("2. Tentative de DELETE sur " + SHEET_BEST_BASE_URL + "/Agents/all");
-        const delRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents/all`, { method: 'DELETE' });
-        alert("3. DELETE status = " + delRes.status);
-        if (!delRes.ok) throw new Error(`DELETE échoué: ${delRes.status}`);
-        
         const dataToSend = agents.map(a => ({
             Code: a.code,
             Nom: a.nom,
@@ -77,19 +67,19 @@ async function saveSharedAgents() {
             Date_Naissance: a.date_naissance || '',
             DateSortie: a.date_sortie || ''
         }));
-        alert("4. Données préparées, envoi POST...");
         
-        const postRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents`, {
+        // POST avec ?replace=true pour remplacer tout l'onglet
+        const postRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents?replace=true`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dataToSend)
         });
-        alert("5. POST status = " + postRes.status);
         if (!postRes.ok) throw new Error(`POST échoué: ${postRes.status}`);
-        
-        alert("✅ Sauvegarde réussie !");
-    } catch (err) {
-        alert("❌ ERREUR: " + err.message);
+        console.log("✅ Agents sauvegardés (remplacement)");
+        showSnackbar(`✅ ${agents.length} agents synchronisés`);
+    } catch (erreur) {
+        console.error("❌ Erreur", erreur);
+        showSnackbar("❌ Erreur de sauvegarde");
     }
 }
 
