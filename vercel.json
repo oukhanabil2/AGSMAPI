@@ -1,9 +1,18 @@
 {
-
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "https://api.sheetbest.com/sheets/3c7ae8f7-6b84-4020-8d6a-ff8bc1de1c1b/tabs/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
     }
   ]
 }
