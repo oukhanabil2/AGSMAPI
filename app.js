@@ -50,25 +50,22 @@ async function loadSharedAgents() {
 // Sauvegarder les agents vers le cloud
 
 async function saveSharedAgents() {
+    alert("1. Entrée dans saveSharedAgents");
     if (!SHEET_BEST_BASE_URL) {
-        console.error("SHEET_BEST_BASE_URL non défini");
-        showSnackbar("❌ Configuration API manquante");
+        alert("ERREUR: SHEET_BEST_BASE_URL non défini");
         return;
     }
     try {
-        console.log("📤 Sauvegarde des agents...");
-
-        // 1. Supprimer toutes les lignes existantes
+        alert("2. Tentative de DELETE sur " + SHEET_BEST_BASE_URL + "/Agents/all");
         const delRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents/all`, { method: 'DELETE' });
-        if (!delRes.ok) throw new Error(`DELETE a échoué: ${delRes.status}`);
-        console.log("✅ Anciennes données supprimées");
-
-        // 2. Préparer les données (sans les champs vides inutiles)
+        alert("3. DELETE status = " + delRes.status);
+        if (!delRes.ok) throw new Error(`DELETE échoué: ${delRes.status}`);
+        
         const dataToSend = agents.map(a => ({
-            Code: a.code || '',
-            Nom: a.nom || '',
-            Prénom: a.prenom || '',
-            Groupe: a.groupe || '',
+            Code: a.code,
+            Nom: a.nom,
+            Prénom: a.prenom,
+            Groupe: a.groupe,
             Tel: a.tel || '',
             Matricule: a.matricule || '',
             Cin: a.cin || '',
@@ -80,21 +77,19 @@ async function saveSharedAgents() {
             Date_Naissance: a.date_naissance || '',
             DateSortie: a.date_sortie || ''
         }));
-
-        // 3. Envoyer les nouvelles données
+        alert("4. Données préparées, envoi POST...");
+        
         const postRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dataToSend)
         });
-        if (!postRes.ok) throw new Error(`POST a échoué: ${postRes.status}`);
-
-        const result = await postRes.json();
-        console.log("✅ Agents sauvegardés avec succès", result);
-        showSnackbar(`✅ ${agents.length} agents synchronisés`);
-    } catch (erreur) {
-        console.error("❌ Erreur dans saveSharedAgents", erreur);
-        showSnackbar("❌ Erreur de sauvegarde: " + erreur.message);
+        alert("5. POST status = " + postRes.status);
+        if (!postRes.ok) throw new Error(`POST échoué: ${postRes.status}`);
+        
+        alert("✅ Sauvegarde réussie !");
+    } catch (err) {
+        alert("❌ ERREUR: " + err.message);
     }
 }
 
@@ -1578,10 +1573,12 @@ function addNewAgent() {
     if (agents.find(a => a.code === code)) { alert(`⚠️ Le code ${code} existe déjà!`); return; }
     
     agents.push({ code, nom, prenom, groupe, tel, matricule, cin, poste, date_entree, adresse, email, statut: 'actif', date_sortie: null });
+    alert("saveSharedAgents va être appelée");
     saveData();
   
 saveSharedAgents();
 
+alert("saveSharedAgents a été appelée");
     addNotification('agent_add', { action: 'create', agentCode: code, agentName: `${nom} ${prenom}`, groupe: groupe });
     alert(`✅ Agent ${code} ajouté avec succès!`);
     showAgentsList();
