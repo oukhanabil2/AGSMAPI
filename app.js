@@ -49,27 +49,52 @@ async function loadSharedAgents() {
 }
 // Sauvegarder les agents vers le cloud
 
-      
-     async function saveSharedAgents() {
-    if (!SHEET_BEST_BASE_URL) return;
+async function saveSharedAgents() {
+    if (!SHEET_BEST_BASE_URL) {
+        console.error("SHEET_BEST_BASE_URL non défini");
+        showSnackbar("❌ Configuration API manquante");
+        return;
+    }
     try {
-        // 1. Supprimer tout l'onglet
+        console.log("📤 Sauvegarde des agents...");
+
+        // 1. Supprimer toutes les lignes existantes
         const delRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents/all`, { method: 'DELETE' });
-        if (!delRes.ok) throw new Error(`DELETE échoué: ${delRes.status}`);
-        
-        // 2. Réécrire les nouvelles données
-        const dataToSend = agents.map(a => ({ ... }));
+        if (!delRes.ok) throw new Error(`DELETE a échoué: ${delRes.status}`);
+        console.log("✅ Anciennes données supprimées");
+
+        // 2. Préparer les données (sans les champs vides inutiles)
+        const dataToSend = agents.map(a => ({
+            Code: a.code || '',
+            Nom: a.nom || '',
+            Prénom: a.prenom || '',
+            Groupe: a.groupe || '',
+            Tel: a.tel || '',
+            Matricule: a.matricule || '',
+            Cin: a.cin || '',
+            Poste: a.poste || '',
+            DateEntree: a.date_entree || '',
+            Statut: a.statut === 'actif' ? 'Actif' : 'Inactif',
+            Adresse: a.adresse || '',
+            Email: a.email || '',
+            Date_Naissance: a.date_naissance || '',
+            DateSortie: a.date_sortie || ''
+        }));
+
+        // 3. Envoyer les nouvelles données
         const postRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dataToSend)
         });
-        if (!postRes.ok) throw new Error(`POST échoué: ${postRes.status}`);
-        console.log("✅ Agents sauvegardés");
-        showSnackbar("✅ Agents synchronisés");
-    } catch (err) {
-        console.error("❌ Erreur sauvegarde", err);
-        showSnackbar("Erreur de synchronisation");
+        if (!postRes.ok) throw new Error(`POST a échoué: ${postRes.status}`);
+
+        const result = await postRes.json();
+        console.log("✅ Agents sauvegardés avec succès", result);
+        showSnackbar(`✅ ${agents.length} agents synchronisés`);
+    } catch (erreur) {
+        console.error("❌ Erreur dans saveSharedAgents", erreur);
+        showSnackbar("❌ Erreur de sauvegarde: " + erreur.message);
     }
 }
 
@@ -132,17 +157,42 @@ function loadData() {
     
     planningData = JSON.parse(localStorage.getItem('sga_planning') || '{}');
     holidays = JSON.parse(localStorage.getItem('sga_holidays') || '[]');
-    // ... autres chargements locaux ...
+    panicCodes = JSON.parse(localStorage.getItem('sga_panic_codes') || '[]');
+    radios = JSON.parse(localStorage.getItem('sga_radios') || '[]');
+    uniforms = JSON.parse(localStorage.getItem('sga_uniforms') || '[]');
+    warnings = JSON.parse(localStorage.getItem('sga_warnings') || '[]');
+    replacementNotifications = JSON.parse(localStorage.getItem('sga_notifications') || '[]');
+    notifications = JSON.parse(localStorage.getItem('sga_sys_notifications') || '[]');
+    soldeConges = JSON.parse(localStorage.getItem('sga_solde_conges') || '[]');
+    soldesConges = JSON.parse(localStorage.getItem('sga_soldes_conges') || '[]');
     
-    // ⚠️ Ligne à supprimer / commenter
-    loadSharedAgents().then(success => {
-        if (!success) {
-            const savedAgents = localStorage.getItem('sga_agents');
-            if (savedAgents) agents = JSON.parse(savedAgents);
-            if (agents.length === 0) initializeDemoAgents();
+    if (holidays.length === 0) initializeHolidays();
+    
+    // Charger les agents depuis le localStorage uniquement (pas de cloud immédiat)
+    const savedAgents = localStorage.getItem('sga_agents');
+    if (savedAgents && savedAgents.length > 0) {
+        agents = JSON.parse(savedAgents);
+    } else {
+        if (agents.length === 0) initializeDemoAgents();
+    }
+    
+    // Afficher le menu principal sans attendre le cloud
+    displayMainMenu();
+    
+    // Lancer la synchronisation en arrière-plan (une fois après affichage)
+    if (currentUser) {
+        syncAgentsFromCloud();
+    }
+}
+async function syncAgentsFromCloud() {
+    const success = await loadSharedAgents();
+    if (!success) {
+        console.log("Impossible de synchroniser les agents depuis le cloud");
+        // Optionnel : afficher un message à l'utilisateur
+        if (typeof showSnackbar === 'function') {
+            showSnackbar("⚠️ Synchronisation cloud échouée, données locales affichées");
         }
-        displayMainMenu();
-    });
+    }
 }
 // Rafraîchir les données toutes les 5 minutes
 setInterval(() => {
@@ -1529,6 +1579,9 @@ function addNewAgent() {
     
     agents.push({ code, nom, prenom, groupe, tel, matricule, cin, poste, date_entree, adresse, email, statut: 'actif', date_sortie: null });
     saveData();
+  
+saveSharedAgents();
+
     addNotification('agent_add', { action: 'create', agentCode: code, agentName: `${nom} ${prenom}`, groupe: groupe });
     alert(`✅ Agent ${code} ajouté avec succès!`);
     showAgentsList();
@@ -1584,6 +1637,8 @@ function updateAgent(code) {
         if (oldAgent.statut !== agents[idx].statut) addNotification('agent_update', { action: 'update', agentCode: code, agentName: `${agents[idx].nom} ${agents[idx].prenom}`, field: 'Statut', oldValue: oldAgent.statut, newValue: agents[idx].statut });
         
         saveData();
+        
+saveSharedAgents(); 
         alert(`✅ Agent ${code} modifié!`);
         showAgentsList();
     }
@@ -1595,6 +1650,7 @@ function deleteAgent(code) {
     if (confirm(`Supprimer définitivement l'agent ${code} ?`)) {
         agents = agents.filter(a => a.code !== code);
         saveData();
+saveSharedAgents();
         addNotification('agent_delete', { action: 'delete', agentCode: code, agentName: `${agent.nom} ${agent.prenom}` });
         alert(`✅ Agent ${code} supprimé!`);
         showAgentsList();
