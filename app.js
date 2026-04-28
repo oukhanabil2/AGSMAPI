@@ -1442,6 +1442,20 @@ function displayAgentsMenu() {
 }
 
 function showAgentsList() {
+    // --- DÉDUPLICATION TEMPORAIRE ---
+    const uniqueAgents = [];
+    const codes = new Set();
+    for (const a of agents) {
+        if (!codes.has(a.code)) {
+            codes.add(a.code);
+            uniqueAgents.push(a);
+        }
+    }
+    agents = uniqueAgents;  // corrige le tableau global
+
+    // Sauvegarde locale après nettoyage
+    localStorage.setItem('sga_agents', JSON.stringify(agents));
+
     let filteredAgents = getFilteredAgents();
     const groupLabel = currentUser.role === 'CP' ? ` - Groupe ${currentUser.groupe} uniquement` : '';
     
