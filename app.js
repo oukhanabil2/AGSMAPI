@@ -12,13 +12,16 @@ const SHEET_BEST_BASE_URL = "https://agsmapi.vercel.app/api";
 const SHEET_LEAVES_API_URL = SHEET_BEST_BASE_URL; // temporaire, mais on utilisera les tabs
 // Charger les agents depuis le cloud (TOUT LE MONDE VOIT LES MÊMES DONNÉES)
 async function loadSharedAgents() {
-    if (!SHEET_BEST_BASE_URL) return false;
+    alert("1. Début chargement agents");
+    if (!SHEET_BEST_BASE_URL) {
+        alert("URL manquante");
+        return false;
+    }
     try {
-        // Plus de "/tabs" : l'URL de base est déjà "https://agsmapi.vercel.app/api"
         const response = await fetch(`${SHEET_BEST_BASE_URL}/Agents`);
-        if (!response.ok) throw new Error("Erreur réseau");
+        alert("2. Réponse reçue status=" + response.status);
         const cloudAgents = await response.json();
-
+        alert("3. Nombre d'agents reçus = " + cloudAgents.length);
         if (cloudAgents && cloudAgents.length > 0) {
             agents = cloudAgents.map(row => ({
                 code: row.Code || '',
@@ -37,20 +40,33 @@ async function loadSharedAgents() {
                 date_sortie: row.DateSortie || null
             }));
             localStorage.setItem('sga_agents', JSON.stringify(agents));
-            console.log(`✅ ${agents.length} agents chargés`);
-            if (typeof showSnackbar === 'function') showSnackbar(`✅ ${agents.length} agents synchronisés`);
+            alert("4. Agents chargés, total=" + agents.length);
             return true;
+        } else {
+            alert("Aucun agent reçu du cloud");
         }
     } catch (erreur) {
-        console.error("❌ Erreur chargement", erreur);
-        showSnackbar("Erreur de chargement des agents");
+        alert("Erreur: " + erreur.message);
     }
     return false;
 }
 // Sauvegarder les agents vers le cloud
 async function saveSharedAgents() {
-    if (!SHEET_BEST_BASE_URL) return;
+    if (!SHEET_BEST_BASE_URL) {
+        console.error("URL non définie");
+        return;
+    }
     try {
+        // 1. Supprimer toutes les lignes de l'onglet Agents
+        const delRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents/all`, {
+            method: 'DELETE'
+        });
+        console.log("DELETE status:", delRes.status);
+        if (!delRes.ok) {
+            console.warn("DELETE a échoué, mais on continue pour tenter le remplacement ?");
+        }
+        
+        // 2. Préparer les données
         const dataToSend = agents.map(a => ({
             Code: a.code,
             Nom: a.nom,
@@ -67,18 +83,22 @@ async function saveSharedAgents() {
             Date_Naissance: a.date_naissance || '',
             DateSortie: a.date_sortie || ''
         }));
-        
-        // POST avec ?replace=true pour remplacer tout l'onglet
-        const postRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents?replace=true`, {
+
+        // 3. Réécrire l'onglet (POST simple, sans ?replace=true)
+        const postRes = await fetch(`${SHEET_BEST_BASE_URL}/Agents`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dataToSend)
         });
-        if (!postRes.ok) throw new Error(`POST échoué: ${postRes.status}`);
-        console.log("✅ Agents sauvegardés (remplacement)");
-        showSnackbar(`✅ ${agents.length} agents synchronisés`);
-    } catch (erreur) {
-        console.error("❌ Erreur", erreur);
+        console.log("POST status:", postRes.status);
+        if (postRes.ok) {
+            console.log("✅ Agents sauvegardés (DELETE + POST)");
+            showSnackbar("✅ Agents synchronisés");
+        } else {
+            throw new Error(`POST échoué: ${postRes.status}`);
+        }
+    } catch (err) {
+        console.error("❌ Erreur saveSharedAgents", err);
         showSnackbar("❌ Erreur de sauvegarde");
     }
 }
@@ -137,6 +157,8 @@ function saveData() {
 
 // Ancienne fonction loadData - À REMPLACER
 function loadData() {
+  
+  
     const savedUsers = localStorage.getItem('sga_users');
     if (savedUsers) users = JSON.parse(savedUsers);
     
@@ -940,6 +962,12 @@ function changeMyPassword() {
 // ==================== PARTIE 6 : FONCTIONS DE FILTRAGE ====================
 
 function getFilteredAgents() {
+    if (!currentUser) {
+        alert("currentUser est null");
+        return [];
+    }
+    alert("getFilteredAgents, rôle=" + currentUser.role + ", agents.length=" + agents.length);
+
     if (!currentUser) return [];
     if (currentUser.role === 'ADMIN') return agents.filter(a => a.statut === 'actif');
     if (currentUser.role === 'CP') return agents.filter(a => a.statut === 'actif' && a.groupe === currentUser.groupe);
@@ -1442,23 +1470,23 @@ function displayAgentsMenu() {
 }
 
 function showAgentsList() {
-    // --- DÉDUPLICATION TEMPORAIRE ---
-    const uniqueAgents = [];
+    // 1. Nettoyer les doublons dans le tableau agents
+    const unique = [];
     const codes = new Set();
     for (const a of agents) {
         if (!codes.has(a.code)) {
             codes.add(a.code);
-            uniqueAgents.push(a);
+            unique.push(a);
         }
     }
-    agents = uniqueAgents;  // corrige le tableau global
-
-    // Sauvegarde locale après nettoyage
+    agents = unique;
     localStorage.setItem('sga_agents', JSON.stringify(agents));
 
+    // 2. Filtrer selon le rôle
     let filteredAgents = getFilteredAgents();
     const groupLabel = currentUser.role === 'CP' ? ` - Groupe ${currentUser.groupe} uniquement` : '';
-    
+
+    // 3. Générer le HTML
     let html = `<div class="info-section"><h3>📋 Liste des Agents (${filteredAgents.length})${groupLabel}</h3>
         <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
             <input type="text" id="searchAgent" placeholder="🔍 Rechercher par nom, prénom ou code..." style="flex:1; padding:10px;" onkeyup="filterAgentsList()">`;
